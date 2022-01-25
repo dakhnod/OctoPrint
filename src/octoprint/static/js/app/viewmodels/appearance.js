@@ -90,6 +90,11 @@ $(function () {
         self.colorTransparent = parameters[0].appearance_colorTransparent;
         self.colorIcon = parameters[0].appearance_colorIcon;
 
+	    self.progress = ko.observable(undefined);
+	    self.stateString = ko.observable(undefined);
+        self.isPrinting = ko.observable(undefined);
+        self.printTimeLeft = ko.observable(undefined);
+
         function updateIcon() {
             if (self.colorIcon()) {
                 themeFavicon(self.color());
@@ -114,6 +119,40 @@ $(function () {
         self.title = ko.pureComputed(function () {
             if (self.name()) return self.name() + " [" + gettext("OctoPrint") + "]";
             else return gettext("OctoPrint");
+        });
+
+	    self.fromCurrentData = function(data){
+	        self._processStateData(data.state);
+	        self._processProgressData(data.progress);
+	    };
+        
+	    self._processProgressData = function (data) {
+            if (data.completion) {
+                self.progress(data.completion);
+            } else {
+                self.progress(undefined);
+            }
+            self.printTimeLeft(data.printTimeLeft);
+        };
+        
+	    self._processStateData = function (data) {
+            self.stateString(gettext(data.text));
+            self.isPrinting(data.flags.printing);
+        };
+        
+	    self.printTimeLeftStringHlpr = function (fmt) {
+            if (self.printTimeLeft() === undefined) {
+                return "-";
+            } else {
+                return fmt(self.printTimeLeft());
+            }
+        };
+
+        self.title = ko.pureComputed(function () {
+	        if(!self.isPrinting()){
+	    	    return "OctoPrint (" + self.stateString() + ")";
+	        }
+	        return self.printTimeLeftStringHlpr(formatFuzzyPrintTime) + " (" + Math.floor(self.progress()) + "%)";
         });
 
         self.theme_color = ko.pureComputed(function () {
